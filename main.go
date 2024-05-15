@@ -19,22 +19,19 @@ var upgrader = websocket.Upgrader{
 }
 
 const (
-	frameDelay = 10 * time.Millisecond
+	frameDelay = 500 * time.Millisecond
 )
 
 func capturePrimaryDisplay() image.Image {
 	numDisplays := screenshot.NumActiveDisplays()
 	if numDisplays == 0 {
-		log.Println("No active displays found")
 		return nil
 	}
 	bounds := screenshot.GetDisplayBounds(0)
 	img, err := screenshot.CaptureRect(bounds)
 	if err != nil {
-		log.Println("Error capturing screen:", err)
 		return nil
 	}
-
 	return img
 }
 
@@ -46,7 +43,6 @@ func sendVideoStream(conn *websocket.Conn) {
 			continue
 		}
 
-		// Encode image to base64
 		var imgBuf bytes.Buffer
 		err := png.Encode(&imgBuf, img)
 		if err != nil {
@@ -56,14 +52,12 @@ func sendVideoStream(conn *websocket.Conn) {
 		}
 		imgBase64 := base64.StdEncoding.EncodeToString(imgBuf.Bytes())
 
-		// Send image over WebSocket
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(imgBase64)); err != nil {
 			log.Println("Error sending image over WebSocket:", err)
 			time.Sleep(frameDelay)
 			continue
 		}
 
-		// Wait before capturing the next frame
 		time.Sleep(frameDelay)
 	}
 }
