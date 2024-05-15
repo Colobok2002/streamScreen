@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"image"
 	"image/png"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/kbinani/screenshot"
+	"golang.ngrok.com/ngrok"
+	"golang.ngrok.com/ngrok/config"
 )
 
 var upgrader = websocket.Upgrader{
@@ -73,6 +76,20 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	sendVideoStream(conn)
 }
 
+func run(ctx context.Context) error {
+	listener, err := ngrok.Listen(ctx,
+		config.HTTPEndpoint(config.WithForwardsTo("localhost:8081")),
+		ngrok.WithAuthtoken("2a1spZ5Tu8L7gSQAJaafnsG4bJc_2h9nDWzFKoZ3Z1qu7BLLu"), // замените на ваш токен ngrok
+	)
+	if err != nil {
+		log.Println("err", err)
+		return err
+	}
+
+	log.Println("App URL", listener.URL())
+	return http.Serve(listener, nil)
+}
+
 func main() {
 	http.HandleFunc("/ws", wsHandler)
 
@@ -80,5 +97,11 @@ func main() {
 		http.ServeFile(w, r, "stream.html")
 	})
 
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	go func() {
+		log.Fatal(http.ListenAndServe(":8081", nil))
+	}()
+
+	if err := run(context.Background()); err != nil {
+		log.Fatal(err)
+	}
 }
