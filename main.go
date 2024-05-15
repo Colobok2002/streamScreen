@@ -25,7 +25,7 @@ var upgrader = websocket.Upgrader{
 }
 
 const (
-	frameDelay = 500 * time.Millisecond
+	frameDelay = 400 * time.Millisecond
 )
 
 var (
