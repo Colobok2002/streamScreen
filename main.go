@@ -2,68 +2,89 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
+	"image"
 	"image/png"
+	"log"
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/kbinani/screenshot"
 )
 
-func captureScreen() ([]byte, error) {
-	bounds := screenshot.GetDisplayBounds(0) // Получаем границы первого дисплея
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+const (
+	frameDelay = 10 * time.Millisecond
+)
+
+func capturePrimaryDisplay() image.Image {
+	numDisplays := screenshot.NumActiveDisplays()
+	if numDisplays == 0 {
+		log.Println("No active displays found")
+		return nil
+	}
+	bounds := screenshot.GetDisplayBounds(0)
 	img, err := screenshot.CaptureRect(bounds)
 	if err != nil {
-		return nil, err
+		log.Println("Error capturing screen:", err)
+		return nil
 	}
 
-	// Кодирование в PNG
-	var imgBuf bytes.Buffer
-	err = png.Encode(&imgBuf, img)
+	return img
+}
+
+func sendVideoStream(conn *websocket.Conn) {
+	for {
+		img := capturePrimaryDisplay()
+		if img == nil {
+			time.Sleep(frameDelay)
+			continue
+		}
+
+		// Encode image to base64
+		var imgBuf bytes.Buffer
+		err := png.Encode(&imgBuf, img)
+		if err != nil {
+			log.Println("Error encoding image:", err)
+			time.Sleep(frameDelay)
+			continue
+		}
+		imgBase64 := base64.StdEncoding.EncodeToString(imgBuf.Bytes())
+
+		// Send image over WebSocket
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(imgBase64)); err != nil {
+			log.Println("Error sending image over WebSocket:", err)
+			time.Sleep(frameDelay)
+			continue
+		}
+
+		// Wait before capturing the next frame
+		time.Sleep(frameDelay)
+	}
+}
+
+func wsHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		return nil, err
+		http.Error(w, "Could not open WebSocket connection", http.StatusBadRequest)
+		return
 	}
+	defer conn.Close()
 
-	return imgBuf.Bytes(), nil
+	sendVideoStream(conn)
 }
 
 func main() {
-	r := gin.Default()
+	http.HandleFunc("/ws", wsHandler)
 
-	// Маршрут для отображения экрана в браузере
-	r.GET("/", func(c *gin.Context) {
-		c.Writer.Header().Set("Content-Type", "image/png")
-		imgData, err := captureScreen()
-		if err != nil {
-			c.Status(http.StatusInternalServerError)
-			return
-		}
-		c.Data(http.StatusOK, "image/png", imgData)
+	http.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "stream.html")
 	})
 
-	// Маршрут для обновления изображения каждую секунду
-	r.GET("/stream", func(c *gin.Context) {
-		c.Writer.Header().Set("Content-Type", "multipart/x-mixed-replace; boundary=frame")
-		flusher, _ := c.Writer.(http.Flusher)
-
-		for {
-			imgData, err := captureScreen()
-			if err != nil {
-				c.Status(http.StatusInternalServerError)
-				return
-			}
-
-			// Отправка изображения в поток
-			c.Writer.Write([]byte("Content-Type: image/png\n\n"))
-			c.Writer.Write(imgData)
-			c.Writer.Write([]byte("\n--frame\n"))
-			flusher.Flush()
-
-			// Подождать секунду перед захватом следующего кадра
-			time.Sleep(1 * time.Second)
-		}
-	})
-
-	// Запуск сервера
-	r.Run(":8081")
+	log.Fatal(http.ListenAndServe(":8081", nil))
 }
