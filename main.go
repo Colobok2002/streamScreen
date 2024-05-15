@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -27,6 +28,11 @@ const (
 	frameDelay = 500 * time.Millisecond
 )
 
+var (
+	mu      sync.Mutex
+	clients = make(map[*websocket.Conn]bool)
+)
+
 func capturePrimaryDisplay() image.Image {
 	numDisplays := screenshot.NumActiveDisplays()
 	if numDisplays == 0 {
@@ -41,7 +47,7 @@ func capturePrimaryDisplay() image.Image {
 	return img
 }
 
-func sendVideoStream(conn *websocket.Conn) {
+func sendVideoStream() {
 	for {
 		img := capturePrimaryDisplay()
 		if img == nil {
@@ -58,11 +64,15 @@ func sendVideoStream(conn *websocket.Conn) {
 		}
 		imgBase64 := base64.StdEncoding.EncodeToString(imgBuf.Bytes())
 
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(imgBase64)); err != nil {
-			log.Println("Error sending image over WebSocket:", err)
-			time.Sleep(frameDelay)
-			continue
+		mu.Lock()
+		for client := range clients {
+			if err := client.WriteMessage(websocket.TextMessage, []byte(imgBase64)); err != nil {
+				log.Printf("Error sending image to client: %v", err)
+				client.Close()
+				delete(clients, client)
+			}
 		}
+		mu.Unlock()
 
 		time.Sleep(frameDelay)
 	}
@@ -76,13 +86,24 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	sendVideoStream(conn)
+	mu.Lock()
+	clients[conn] = true
+	mu.Unlock()
+
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			mu.Lock()
+			delete(clients, conn)
+			mu.Unlock()
+			break
+		}
+	}
 }
 
 func run(ctx context.Context) error {
 	listener, err := ngrok.Listen(ctx,
 		config.HTTPEndpoint(config.WithForwardsTo("localhost:8081")),
-		ngrok.WithAuthtoken("2a1spZ5Tu8L7gSQAJaafnsG4bJc_2h9nDWzFKoZ3Z1qu7BLLu"), // замените на ваш токен ngrok
+		ngrok.WithAuthtoken("2a1spZ5Tu8L7gSQAJaafnsG4bJc_2h9nDWzFKoZ3Z1qu7BLLu"),
 	)
 	if err != nil {
 		log.Println("Error starting ngrok:", err)
@@ -116,6 +137,8 @@ func main() {
 	go func() {
 		log.Fatal(http.ListenAndServe(":8081", nil))
 	}()
+
+	go sendVideoStream()
 
 	if err := run(context.Background()); err != nil {
 		log.Fatal(err)
