@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"html/template"
 	"image"
 	"image/png"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -33,6 +35,7 @@ func capturePrimaryDisplay() image.Image {
 	bounds := screenshot.GetDisplayBounds(0)
 	img, err := screenshot.CaptureRect(bounds)
 	if err != nil {
+		log.Println("Error capturing screen:", err)
 		return nil
 	}
 	return img
@@ -82,19 +85,32 @@ func run(ctx context.Context) error {
 		ngrok.WithAuthtoken("2a1spZ5Tu8L7gSQAJaafnsG4bJc_2h9nDWzFKoZ3Z1qu7BLLu"), // замените на ваш токен ngrok
 	)
 	if err != nil {
-		log.Println("err", err)
+		log.Println("Error starting ngrok:", err)
 		return err
 	}
 
-	log.Println("App URL", listener.URL())
+	log.Println("App URL", listener.URL()+"/stream")
 	return http.Serve(listener, nil)
 }
 
 func main() {
+	tmpl, err := template.ParseFiles("stream_template.html")
+	if err != nil {
+		log.Fatal("Error parsing template:", err)
+	}
+
 	http.HandleFunc("/ws", wsHandler)
 
 	http.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "stream.html")
+		wsURL := ""
+		if strings.Contains(r.Host, ":") {
+			wsURL = "ws://" + r.Host + "/ws"
+		} else {
+			wsURL = "wss://" + r.Host + "/ws"
+		}
+		if err := tmpl.Execute(w, struct{ WebSocketURL string }{WebSocketURL: wsURL}); err != nil {
+			http.Error(w, "Error executing template", http.StatusInternalServerError)
+		}
 	})
 
 	go func() {

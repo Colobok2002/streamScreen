@@ -22,7 +22,7 @@
 <body>
     <canvas id="videoCanvas"></canvas>
     <script>
-        const ws = new WebSocket('ws://localhost:8081/ws');
+        const ws = new WebSocket('{{.WebSocketURL}}');
         const canvas = document.getElementById('videoCanvas');
         const ctx = canvas.getContext('2d');
 
