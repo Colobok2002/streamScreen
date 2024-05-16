@@ -18,7 +18,7 @@ import (
 //go:embed stream_template.html
 var streamTemplate string
 
-func run() error {
+func runTunnel() error {
 	tunnel, err := localtunnel.New(8081, "localhost", localtunnel.Options{})
 	if err != nil {
 		log.Println("Error starting localtunnel:", err)
@@ -32,9 +32,15 @@ func run() error {
 	if err := telegram.SendTelegramMessageWithButton(appURL); err != nil {
 		log.Println("Error sending message to Telegram:", err)
 	}
+
+	// Проверяем состояние туннеля каждую минуту
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
 	for {
-		time.Sleep(time.Minute)
+		time.Sleep(10 * time.Second)
 	}
+
 	return nil
 }
 
@@ -67,7 +73,7 @@ func main() {
 	}()
 
 	go stream.SendVideoStream()
-	run()
+	runTunnel()
 
 	// if err := run(context.Background()); err != nil {
 	// 	log.Fatal(err)
