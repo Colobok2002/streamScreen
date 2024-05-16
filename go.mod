@@ -3,7 +3,6 @@ module streamScreen
 go 1.22.3
 
 require (
-	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/gorilla/websocket v1.5.1
 	github.com/kbinani/screenshot v0.0.0-20230812210009-b87d31814237
 	golang.ngrok.com/ngrok v1.9.1
