@@ -19,8 +19,12 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// const (
+// 	frameDelay = 16 * time.Millisecond
+// )
+
 const (
-	frameDelay = 400 * time.Millisecond
+	frameDelay = 33 * time.Millisecond
 )
 
 var (
