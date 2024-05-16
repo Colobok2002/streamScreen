@@ -3,10 +3,12 @@ module streamScreen
 go 1.22.3
 
 require (
+	github.com/MarinX/keylogger v0.0.0-20210528193429-a54d7834cc1a // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
+	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gen2brain/shm v0.1.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -31,11 +33,14 @@ require (
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/micmonay/keybd_event v1.1.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/moutend/go-hook v0.1.0 // indirect
 	github.com/otiai10/gosseract v2.2.1+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
+	github.com/robotn/gohook v0.41.0 // indirect
 	github.com/robotn/xgb v0.0.0-20190912153532-2cb92d044934 // indirect
 	github.com/robotn/xgbutil v0.0.0-20190912154524-c861d6f87770 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.8 // indirect
