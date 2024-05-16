@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"html/template"
 	"image"
 	"image/png"
@@ -18,6 +21,62 @@ import (
 	"golang.ngrok.com/ngrok"
 	"golang.ngrok.com/ngrok/config"
 )
+
+type InlineKeyboardButton struct {
+	Text string `json:"text"`
+	URL  string `json:"url"`
+}
+
+type InlineKeyboardMarkup struct {
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
+func sendTelegramMessageWithButton(buttonURL string) error {
+	botToken := "7139011613:AAFU7H6YKKPUZFBtvprwknH8VJ5LvDF4Ukw"
+	chatID := "-1002111741114"
+	message := "Началась новая трансялция"
+	buttonText := "Открыть в барузере"
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken)
+
+	keyboard := InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: buttonText, URL: buttonURL},
+			},
+		},
+	}
+
+	replyMarkup, err := json.Marshal(keyboard)
+	if err != nil {
+		return err
+	}
+
+	data := map[string]interface{}{
+		"chat_id":      chatID,
+		"text":         message,
+		"reply_markup": string(replyMarkup),
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to send message: %v", resp.Status)
+	}
+
+	return nil
+}
+
+//go:embed stream_template.html
+var streamTemplate string
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -110,12 +169,19 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	log.Println("App URL", listener.URL()+"/stream")
+	appURL := listener.URL() + "/stream"
+	log.Println("App URL", appURL)
+
+	if err := sendTelegramMessageWithButton(appURL); err != nil {
+		log.Println("Error sending message to Telegram:", err)
+	}
+
 	return http.Serve(listener, nil)
 }
 
 func main() {
-	tmpl, err := template.ParseFiles("stream_template.html")
+	tmpl, err := template.New("stream").Parse(streamTemplate)
+	
 	if err != nil {
 		log.Fatal("Error parsing template:", err)
 	}
