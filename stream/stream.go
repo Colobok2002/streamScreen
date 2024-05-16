@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"image"
-	"image/png"
+	"image/jpeg"
 	"log"
 	"net/http"
 	"sync"
@@ -18,10 +18,6 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
-
-// const (
-// 	frameDelay = 16 * time.Millisecond
-// )
 
 const (
 	frameDelay = 33 * time.Millisecond
@@ -55,8 +51,8 @@ func SendVideoStream() {
 		}
 
 		var imgBuf bytes.Buffer
-		err := png.Encode(&imgBuf, img)
-		if err != nil {
+		// Кодируем изображение в формат JPEG с настройками качества
+		if err := jpeg.Encode(&imgBuf, img, &jpeg.Options{Quality: 50}); err != nil {
 			log.Println("Error encoding image:", err)
 			time.Sleep(frameDelay)
 			continue

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -16,10 +17,31 @@ type InlineKeyboardMarkup struct {
 	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
 }
 
+func getTunnelPassword() (string, error) {
+	url := "https://loca.lt/mytunnelpassword"
+
+	// Выполняем HTTP GET запрос к URL
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Считываем содержимое ответа
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// Возвращаем пароль в виде строки
+	return string(body), nil
+}
+
 func SendTelegramMessageWithButton(buttonURL string) error {
 	botToken := "7139011613:AAFU7H6YKKPUZFBtvprwknH8VJ5LvDF4Ukw"
 	chatID := "-1002111741114"
-	message := "Началась новая трансялция"
+	password, _ := getTunnelPassword()
+	message := "Началась новая трансялция\nPassword " + password
 	buttonText := "Открыть в барузере"
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken)
 

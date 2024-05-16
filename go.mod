@@ -16,6 +16,7 @@ require (
 	github.com/inconshreveable/log15/v3 v3.0.0-testing.5 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
+	github.com/localtunnel/go-localtunnel v0.0.0-20170326223115-8a804488f275 // indirect
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
