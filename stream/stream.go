@@ -51,8 +51,7 @@ func SendVideoStream() {
 		}
 
 		var imgBuf bytes.Buffer
-		// Кодируем изображение в формат JPEG с настройками качества
-		if err := jpeg.Encode(&imgBuf, img, &jpeg.Options{Quality: 50}); err != nil {
+		if err := jpeg.Encode(&imgBuf, img, &jpeg.Options{Quality: 60}); err != nil {
 			log.Println("Error encoding image:", err)
 			time.Sleep(frameDelay)
 			continue

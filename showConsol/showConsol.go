@@ -1,6 +1,9 @@
 package showConsol
 
-import "syscall"
+import (
+	"syscall"
+	"time"
+)
 
 var (
 	kernel32             = syscall.NewLazyDLL("kernel32.dll")
@@ -15,6 +18,7 @@ const (
 	VK_CONTROL = 0x11
 	VK_SHIFT   = 0x10
 	VK_F4      = 0x73
+	VK_F3      = 0x72
 )
 
 func toggleConsole() {
@@ -36,10 +40,16 @@ func isKeyPressed(keyCode uintptr) bool {
 	return ret&0x8000 != 0
 }
 
-func CheckHotkey() {
+func CheckHotkey(restartFunc func()) {
+	consoleVisible = 1
+	toggleConsole()
 	for {
 		if isKeyPressed(VK_CONTROL) && isKeyPressed(VK_SHIFT) && isKeyPressed(VK_F4) {
 			toggleConsole()
 		}
+		if isKeyPressed(VK_CONTROL) && isKeyPressed(VK_SHIFT) && isKeyPressed(VK_F3) {
+			restartFunc()
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }

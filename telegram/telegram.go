@@ -37,7 +37,7 @@ func getTunnelPassword() (string, error) {
 	return string(body), nil
 }
 
-func SendTelegramMessageWithButton(buttonURL string) error {
+func SendTelegramMessageWithButton(buttonURL string, restatrUrl string) error {
 	botToken := "7139011613:AAFU7H6YKKPUZFBtvprwknH8VJ5LvDF4Ukw"
 	chatID := "-1002111741114"
 	password, _ := getTunnelPassword()
@@ -49,6 +49,9 @@ func SendTelegramMessageWithButton(buttonURL string) error {
 		InlineKeyboard: [][]InlineKeyboardButton{
 			{
 				{Text: buttonText, URL: buttonURL},
+			},
+			{
+				{Text: "Перезапустить сервер", URL: restatrUrl},
 			},
 		},
 	}
